@@ -1,0 +1,9 @@
+{
+  "appId": "com.yourname.exfilraiders",
+  "appName": "Exfil Raiders",
+  "webDir": "www",
+  "backgroundColor": "#0b0d0a",
+  "android": {
+    "backgroundColor": "#0b0d0a"
+  }
+}

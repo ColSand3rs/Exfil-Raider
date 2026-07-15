@@ -1,0 +1,17 @@
+{
+  "name": "exfil-raiders",
+  "version": "1.0.0",
+  "description": "Exfil Raiders \u2014 a Tarkov-flavored 2D run-and-gun platformer, packaged as an Android app with Capacitor.",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "open:android": "npx cap open android",
+    "build:apk": "cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

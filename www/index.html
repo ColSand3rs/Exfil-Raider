@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0c0e10">
+<title>Exfil Raiders</title>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #0c0e10;
+    height: 100%;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    font-family: "Courier New", monospace;
+  }
+  #wrap {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #0c0e10;
+  }
+  canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background: #000;
+  }
+  .btn {
+    position: fixed;
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.22);
+    color: rgba(255,255,255,0.75);
+    font-size: 24px; line-height: 60px; text-align: center;
+    z-index: 10;
+    touch-action: none;
+    font-family: "Courier New", monospace;
+  }
+  .btn.on { background: rgba(140,255,140,0.18); border-color: rgba(140,255,140,0.6); }
+  #dl { left: 4%;  bottom: 7%; }
+  #dr { left: calc(4% + 84px); bottom: 7%; }
+  #bj { right: calc(4% + 96px); bottom: 7%; }
+  #bf {
+    right: 4%; bottom: 9%;
+    width: 78px; height: 78px;
+    border: none;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255,60,50,0.95) 0, rgba(255,60,50,0.95) 2.2px, transparent 2.8px),
+      linear-gradient(to right, transparent calc(50% - 14px), rgba(215,230,222,0.55) calc(50% - 14px), rgba(215,230,222,0.55) calc(50% - 1px), transparent calc(50% - 1px), transparent calc(50% + 1px), rgba(215,230,222,0.55) calc(50% + 1px), rgba(215,230,222,0.55) calc(50% + 14px), transparent calc(50% + 14px)),
+      linear-gradient(to bottom, transparent calc(50% - 14px), rgba(215,230,222,0.55) calc(50% - 14px), rgba(215,230,222,0.55) calc(50% - 1px), transparent calc(50% - 1px), transparent calc(50% + 1px), rgba(215,230,222,0.55) calc(50% + 1px), rgba(215,230,222,0.55) calc(50% + 14px), transparent calc(50% + 14px)),
+      radial-gradient(circle at 34% 28%, rgba(255,255,255,0.14), transparent 42%),
+      radial-gradient(circle at 50% 50%, rgba(24,42,30,0.55) 0%, rgba(8,12,10,0.88) 68%, rgba(0,0,0,0.92) 100%);
+    box-shadow:
+      0 0 0 2px rgba(230,238,232,0.16),
+      0 0 0 5px rgba(15,15,15,0.6),
+      inset 0 0 14px rgba(0,0,0,0.65);
+  }
+  #bf::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 3px; height: 3px;
+    margin: -1.5px 0 0 -1.5px;
+    border-radius: 50%;
+    box-shadow:
+      -22px 0 0 -0.5px rgba(215,230,222,0.55),
+       22px 0 0 -0.5px rgba(215,230,222,0.55),
+      0 -22px 0 -0.5px rgba(215,230,222,0.55),
+      0  22px 0 -0.5px rgba(215,230,222,0.55);
+  }
+  #bf.on {
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255,90,60,1) 0, rgba(255,90,60,1) 2.6px, transparent 3.2px),
+      linear-gradient(to right, transparent calc(50% - 14px), rgba(255,150,120,0.85) calc(50% - 14px), rgba(255,150,120,0.85) calc(50% - 1px), transparent calc(50% - 1px), transparent calc(50% + 1px), rgba(255,150,120,0.85) calc(50% + 1px), rgba(255,150,120,0.85) calc(50% + 14px), transparent calc(50% + 14px)),
+      linear-gradient(to bottom, transparent calc(50% - 14px), rgba(255,150,120,0.85) calc(50% - 14px), rgba(255,150,120,0.85) calc(50% - 1px), transparent calc(50% - 1px), transparent calc(50% + 1px), rgba(255,150,120,0.85) calc(50% + 1px), rgba(255,150,120,0.85) calc(50% + 14px), transparent calc(50% + 14px)),
+      radial-gradient(circle at 34% 28%, rgba(255,255,255,0.20), transparent 42%),
+      radial-gradient(circle at 50% 50%, rgba(70,18,14,0.6) 0%, rgba(12,4,4,0.9) 68%, rgba(0,0,0,0.95) 100%);
+    box-shadow:
+      0 0 0 2px rgba(255,150,120,0.55),
+      0 0 12px 3px rgba(255,90,60,0.55),
+      inset 0 0 14px rgba(0,0,0,0.65);
+  }
+  #pauseBtn {
+    position: fixed; top: 10px; right: 12px;
+    width: 40px; height: 40px; line-height: 38px;
+    border-radius: 8px; font-size: 16px;
+    z-index: 11;
+  }
+  #muteBtn {
+    position: fixed; top: 10px; left: 12px;
+    width: 40px; height: 40px; line-height: 38px;
+    border-radius: 8px; font-size: 16px;
+    z-index: 11;
+  }
+  @media (min-width: 1000px) and (hover: hover) {
+    .btn { opacity: 0.35; }
+  }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="960" height="544"></canvas></div>
+<div class="btn" id="dl">&#9664;</div>
+<div class="btn" id="dr">&#9654;</div>
+<div class="btn" id="bj">&#9650;</div>
+<div class="btn" id="bf"></div>
+<div class="btn" id="pauseBtn">II</div>
+<div class="btn" id="muteBtn">&#128266;</div>
+<script>
+(function(){
+'use strict';
+
+// ============================== CORE SETUP ==============================
+var cv = document.getElementById('game');
+var ctx = cv.getContext('2d');
+var VW = 960, VH = 544, T = 32;
+ctx.imageSmoothingEnabled = false;
+
+function fit(){
+  var s = Math.min(window.innerWidth / VW, window.innerHeight / VH);
+  cv.style.width = Math.floor(VW * s) + 'px';
+  cv.style.height = Math.floor(VH * s) + 'px';
+}
+window.addEventListener('resize', fit);
+fit();
+
+// ============================== INPUT ==============================
+var inp = { l:false, r:false, j:false, f:false };
+var jumpBuf = 0, uiPress = false;
+
+var KEYMAP = {
+  'ArrowLeft':'l','a':'l','A':'l','q':'l','Q':'l',
+  'ArrowRight':'r','d':'r','D':'r',
+  'ArrowUp':'j','w':'j','W':'j','z':'j','Z':'j',' ':'j',
+  'x':'f','X':'f','j':'f','J':'f','k':'f','K':'f'
+};
+document.addEventListener('keydown', function(e){
+  var k = KEYMAP[e.key];
+  if (k){
+    if (k === 'j' && !inp.j) jumpBuf = 7;
+    inp[k] = true;
+    e.preventDefault();
+  }
+  uiPress = true;
+});
+document.addEventListener('keyup', function(e){
+  var k = KEYMAP[e.key];
+  if (k) inp[k] = false;
+});
+
+function bindBtn(id, key){
+  var el = document.getElementById(id);
+  function dn(e){ e.preventDefault(); el.classList.add('on');
+    if (key === 'j' && !inp.j) jumpBuf = 7;
+    inp[key] = true; uiPress = true; unlockAudio(); }
+  function up(e){ e.preventDefault(); el.classList.remove('on'); inp[key] = false; }
+  el.addEventListener('pointerdown', dn);
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  el.addEventListener('pointerleave', up);
+  el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+}
+bindBtn('dl','l'); bindBtn('dr','r'); bindBtn('bj','j'); bindBtn('bf','f');
+
+var paused = false;
+document.getElementById('pauseBtn').addEventListener('pointerdown', function(e){
+  e.preventDefault(); e.stopPropagation();
+  if (G.state === 'playing') paused = !paused;
+});
+
+cv.addEventListener('pointerdown', function(e){
+  unlockAudio();
+  var r = cv.getBoundingClientRect();
+  var mx = (e.clientX - r.left) * (VW / r.width);
+  var my = (e.clientY - r.top) * (VH / r.height);
+  handleMenuClick(mx, my);
+  uiPress = true;
+});
+document.addEventListener('touchmove', function(e){ e.preventDefault(); }, { passive:false });
+
+// ============================== SETTINGS ==============================
+var SET = { muted:false, vol:1 };
+(function loadSettings(){
+  try {
+    var s = localStorage.getItem('exfil_settings');
+    if (s){
+      var o = JSON.parse(s);
+      if (typeof o.muted === 'boolean') SET.muted = o.muted;
+      if (typeof o.vol === 'number') SET.vol = o.vol;
+    }
+  } catch(e){}
+})();
+function saveSettings(){
+  try { localStorage.setItem('exfil_settings', JSON.stringify(SET)); } catch(e){}
+}
+var muteBtnEl = document.getElementById('muteBtn');
+function syncMuteBtn(){
+  muteBtnEl.innerHTML = SET.muted ? '&#128263;' : '&#128266;';
+  muteBtnEl.classList.toggle('on', !SET.muted);
+}
+muteBtnEl.addEventListener('pointerdown', function(e){
+  e.preventDefault(); e.stopPropagation();
+  unlockAudio();
+  SET.muted = !SET.muted;
+  syncMuteBtn(); saveSettings();
+  if (!SET.muted) SFX.click();
+});
+syncMuteBtn();
+
+// ============================== AUDIO ==============================
+var AC = null;
+function unlockAudio(){
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+  } catch(e){}
+}
+function tone(f0, f1, dur, type, vol){
+  if (!AC || SET.muted) return;
+  vol = (vol || 0.12) * SET.vol;
+  if (vol <= 0.001) return;
+  try {
+    var o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || 'square';
+    o.frequency.setValueAtTime(f0, AC.currentTime);
+    o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), AC.currentTime + dur);
+    g.gain.setValueAtTime(vol, AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(); o.stop(AC.currentTime + dur);
+  } catch(e){}
+}
+var SFX = {
+  shoot:  function(){ tone(650, 160, 0.07, 'square', 0.10); },
+  eshoot: function(){ tone(380, 110, 0.09, 'square', 0.09); },
+  hit:    function(){ tone(210, 55, 0.10, 'sawtooth', 0.14); },
+  hurt:   function(){ tone(160, 50, 0.18, 'sawtooth', 0.16); },
+  pickup: function(){ tone(660, 660, 0.05, 'sine', 0.12); setTimeout(function(){ tone(990, 990, 0.07, 'sine', 0.12); }, 55); },
+  ammo:   function(){ tone(440, 300, 0.08, 'square', 0.10); },
+  tick:   function(){ tone(880, 880, 0.04, 'sine', 0.09); },
+  dead:   function(){ tone(300, 40, 0.6, 'sawtooth', 0.16); },
+  win:    function(){ [523, 659, 784, 1046].forEach(function(f, i){ setTimeout(function(){ tone(f, f, 0.14, 'square', 0.11); }, i * 110); }); },
+  boss:   function(){ tone(120, 60, 0.4, 'sawtooth', 0.16); },
+  click:  function(){ tone(1200, 900, 0.03, 'square', 0.05); },
+  reload: function(){ tone(500, 350, 0.05, 'square', 0.07); setTimeout(function(){ tone(350, 500, 0.05, 'square', 0.07); }, 140); }
+};
+
+// ============================== MAP DATA ==============================
+// Tiles: X solid  # solid-alt  - one-way platform  ^ barbed wire
+//        P player  S scav  F PMC  B boss  C sealed case  M medkit  A ammo  R roubles  E exfil
+function row(w){
+  var a = new Array(w).fill(' ');
+  for (var i = 1; i < arguments.length; i++){
+    var c = arguments[i][0], s = arguments[i][1];
+    for (var k = 0; k < s.length; k++) a[c + k] = s[k];
+  }
+  return a.join('');
+}
+function xs(n){ return new Array(n + 1).join('X'); }
+
+var W1 = 124;
+var MAP1 = [
+  row(W1), row(W1), row(W1), row(W1), row(W1), row(W1), row(W1), row(W1),
+  row(W1, [49,'M']),
+  row(W1, [48,'----']),
+  row(W1, [43,'R'], [55,'S'], [73,'R'], [86,'C']),
+  row(W1, [18,'A'], [42,'----'], [54,'----'], [71,'------'], [85,'###']),
+  row(W1, [17,'###'], [84,'####']),
+  row(W1, [3,'P'], [8,'C'], [14,'######'], [24,'R'], [34,'S'], [62,'S'], [65,'C'], [68,'S'], [72,'^^^^'], [83,'#####'], [104,'S'], [108,'A'], [113,'EEEE']),
+  row(W1, [0, xs(26)], [29, xs(67)], [99, xs(25)]),
+  row(W1, [0, xs(26)], [29, xs(67)], [99, xs(25)]),
+  row(W1, [0, xs(26)], [29, xs(67)], [99, xs(25)])
+];
+
+var W2 = 132;
+var MAP2 = [
+  row(W2), row(W2), row(W2), row(W2), row(W2), row(W2),
+  row(W2, [25,'M'], [27,'C']),
+  row(W2, [24,'----'], [33,'R']),
+  row(W2, [19,'S'], [31,'-----']),
+  row(W2, [18,'----'], [105,'M'], [108,'S'], [111,'R'], [114,'S'], [116,'A'], [118,'EEEE']),
+  row(W2, [13,'R'], [38,'----'], [88,'R'], [103, xs(29)]),
+  row(W2, [12,'----'], [86,'-----'], [99,'##'], [103, xs(29)]),
+  row(W2, [95,'##'], [99,'##'], [103, xs(29)]),
+  row(W2, [3,'P'], [22,'S'], [47,'^^^'], [53,'S'], [57,'C'], [65,'S'], [76,'S'], [80,'A'], [83,'R'], [87,'^^^'], [92,'#'], [95,'##'], [99,'##'], [103, xs(29)]),
+  row(W2, [0, xs(30)], [33, xs(37)], [73, xs(59)]),
+  row(W2, [0, xs(30)], [33, xs(37)], [73, xs(59)]),
+  row(W2, [0, xs(30)], [33, xs(37)], [73, xs(59)])
+];
+
+var W3 = 140;
+var MAP3 = [
+  row(W3, [0, xs(140)]),
+  row(W3), row(W3), row(W3), row(W3), row(W3), row(W3), row(W3), row(W3),
+  row(W3, [50,'R'], [52,'S'], [90,'R'], [96,'S'], [102,'A']),
+  row(W3, [48,'XXXXXX'], [77,'R'], [86,'--------------------']),
+  row(W3, [48,'XXXXXX'], [75,'-----']),
+  row(W3, [47,'#'], [48,'XXXXXX'], [85,'#']),
+  row(W3, [3,'P'], [7,'A'], [18,'S'], [26,'^^^'], [31,'S'], [40,'S'], [44,'C'], [46,'#'], [58,'M'], [68,'S'], [72,'C'], [76,'^^^'], [82,'S'], [85,'#'], [108,'M'], [112,'A'], [114,'#'], [119,'B'], [126,'#'], [132,'EEEEE']),
+  row(W3, [0, xs(34)], [37, xs(25)], [65, xs(27)], [95, xs(45)]),
+  row(W3, [0, xs(34)], [37, xs(25)], [65, xs(27)], [95, xs(45)]),
+  row(W3, [0, xs(34)], [37, xs(25)], [65, xs(27)], [95, xs(45)])
+];
+
+var W4 = 132;
+var MAP4 = [
+  row(W4), row(W4), row(W4), row(W4), row(W4), row(W4),
+  row(W4, [25,'M'], [27,'C']),
+  row(W4, [24,'----'], [33,'R']),
+  row(W4, [19,'S'], [31,'-----']),
+  row(W4, [18,'----'], [105,'M'], [108,'F'], [111,'R'], [114,'S'], [116,'A'], [118,'EEEE']),
+  row(W4, [13,'R'], [38,'----'], [88,'R'], [103, xs(29)]),
+  row(W4, [12,'----'], [86,'-----'], [99,'##'], [103, xs(29)]),
+  row(W4, [95,'##'], [99,'##'], [103, xs(29)]),
+  row(W4, [3,'P'], [10,'F'], [22,'S'], [40,'F'], [47,'^^^'], [53,'S'], [57,'C'], [65,'F'], [76,'S'], [80,'A'], [83,'R'], [87,'^^^'], [92,'#'], [95,'##'], [99,'##'], [103, xs(29)]),
+  row(W4, [0, xs(30)], [33, xs(37)], [73, xs(59)]),
+  row(W4, [0, xs(30)], [33, xs(37)], [73, xs(59)]),
+  row(W4, [0, xs(30)], [33, xs(37)], [73, xs(59)])
+];
+
+var W5 = 124;
+var MAP5 = [
+  row(W5), row(W5), row(W5), row(W5), row(W5), row(W5), row(W5), row(W5),
+  row(W5, [49,'M']),
+  row(W5, [48,'----']),
+  row(W5, [43,'R'], [55,'S'], [73,'R'], [86,'C']),
+  row(W5, [18,'A'], [42,'----'], [54,'----'], [71,'------'], [85,'###']),
+  row(W5, [17,'###'], [84,'####']),
+  row(W5, [3,'P'], [8,'C'], [14,'######'], [24,'R'], [34,'S'], [45,'F'], [62,'F'], [65,'C'], [68,'S'], [72,'^^^^'], [83,'#####'], [90,'F'], [104,'F'], [108,'A'], [113,'EEEE']),
+  row(W5, [0, xs(26)], [29, xs(67)], [99, xs(25)]),
+  row(W5, [0, xs(26)], [29, xs(67)], [99, xs(25)]),
+  row(W5, [0, xs(26)], [29, xs(67)], [99, xs(25)])
+];
+
+var W6 = 140;
+var MAP6 = [
+  row(W6, [0, xs(140)]),
+  row(W6), row(W6), row(W6), row(W6), row(W6), row(W6), row(W6), row(W6),
+  row(W6, [50,'R'], [52,'S'], [90,'R'], [96,'S'], [102,'A']),
+  row(W6, [48,'XXXXXX'], [77,'R'], [86,'--------------------']),
+  row(W6, [48,'XXXXXX'], [75,'-----']),
+  row(W6, [47,'#'], [48,'XXXXXX'], [85,'#']),
+  row(W6, [3,'P'], [7,'A'], [18,'S'], [26,'^^^'], [31,'S'], [40,'S'], [44,'C'], [46,'#'], [55,'F'], [58,'M'], [68,'F'], [72,'C'], [76,'^^^'], [82,'S'], [85,'#'], [100,'F'], [108,'M'], [112,'A'], [114,'#'], [119,'B'], [126,'#'], [132,'EEEEE']),
+  row(W6, [0, xs(34)], [37, xs(25)], [65, xs(27)], [95, xs(45)]),
+  row(W6, [0, xs(34)], [37, xs(25)], [65, xs(27)], [95, xs(45)]),
+  row(W6, [0, xs(34)], [37, xs(25)], [65, xs(27)], [95, xs(45)])
+];
+
+var THEMES = [
+  { skyTop:'#4b5b6d', skyBot:'#8b95a0', far:'#39434e', near:'#2c343d',
+    ground:'#5c5148', groundTop:'#7d7261', alt:'#7c5a3a', altHi:'#96714c',
+    plank:'#6e5b40', pine:false, stripes:false },
+  { skyTop:'#141f18', skyBot:'#33513b', far:'#182a1e', near:'#0f1d14',
+    ground:'#3c4632', groundTop:'#5d7a43', alt:'#6b4e2e', altHi:'#85643e',
+    plank:'#5c4426', pine:true, stripes:false },
+  { skyTop:'#101216', skyBot:'#23262c', far:'#181b20', near:'#101318',
+    ground:'#3a3f46', groundTop:'#50565f', alt:'#4c525a', altHi:'#5f666f',
+    plank:'#555b52', pine:false, stripes:true },
+  { skyTop:'#2b2f45', skyBot:'#4a4f66', far:'#20222f', near:'#161720',
+    ground:'#4a4438', groundTop:'#67604c', alt:'#5c5648', altHi:'#726a55',
+    plank:'#544d3c', pine:false, stripes:false },
+  { skyTop:'#3a2f45', skyBot:'#c97b52', far:'#2c2438', near:'#1d1926',
+    ground:'#8a7a5c', groundTop:'#b0a074', alt:'#6b5a3e', altHi:'#8a744e',
+    plank:'#5c4c30', pine:false, stripes:false },
+  { skyTop:'#05060c', skyBot:'#141a26', far:'#0a0d14', near:'#05070a',
+    ground:'#31353d', groundTop:'#454b55', alt:'#3a3e46', altHi:'#4d525c',
+    plank:'#3f434a', pine:false, stripes:true }
+];
+
+var LEVELS = [
+  { map: MAP1, theme: 0, time: 300, name: 'CUSTOMS YARD',
+    brief: ['First raid. Grab what you can.', 'Reach the green smoke and hold to exfil.'],
+    texts: [ {c:2,r:10,t:'MOVE'}, {c:13,r:9,t:'JUMP'}, {c:30,r:10,t:'FIRE AT SCAVS'}, {c:109,r:9,t:'HOLD IN SMOKE TO EXFIL'} ] },
+  { map: MAP2, theme: 1, time: 300, name: 'PINE WOODS',
+    brief: ['Scavs in the treeline. Watch your six.', 'The exfil sits on the ridge. Climb.'],
+    texts: [] },
+  { map: MAP4, theme: 3, time: 300, name: 'DORMS',
+    brief: ['Rival PMCs spotted on comms.', 'They hit harder and shoot straighter than scavs. Stay covered.'],
+    texts: [] },
+  { map: MAP3, theme: 2, time: 330, name: 'THE FACTORY',
+    brief: ['The Boss guards the gate.', 'Kill him or run past. Then get out.'],
+    texts: [] },
+  { map: MAP5, theme: 4, time: 320, name: 'SHORELINE',
+    brief: ['Heavy PMC presence along the coast.', 'Push through to the resort exfil before dark.'],
+    texts: [] },
+  { map: MAP6, theme: 5, time: 360, name: 'LIGHTHOUSE',
+    brief: ['Final raid. A Boss and his PMC escort hold the tower.', 'Clear them out or slip past in the dark.'],
+    texts: [] }
+];
+
+// ============================== WEAPONS / FACTIONS ==============================
+var WEAPONS = {
+  M4A1:  { name:'M4A1',  dmg:1, cd:7,  mag:30, res:120, bspeed:12, reloadTime:70,  muzzle:'#bfe0ff' },
+  AKM:   { name:'AKM',   dmg:2, cd:12, mag:30, res:90,  bspeed:10, reloadTime:105, muzzle:'#ffcf7a' },
+  MP5SD: { name:'MP5SD', dmg:1, cd:5,  mag:40, res:160, bspeed:13, reloadTime:60,  muzzle:'#d8d8ff' },
+  SV98:  { name:'SV-98', dmg:5, cd:30, mag:10, res:40,  bspeed:17, reloadTime:130, muzzle:'#ffe27a' },
+  SR25:  { name:'SR-25', dmg:2, cd:9,  mag:20, res:100, bspeed:13, reloadTime:85,  muzzle:'#ffb3a7' }
+};
+
+var FACTIONS = {
+  USEC: {
+    name: 'USEC', tag: 'PMC \u2014 NATO-aligned', weaponKey: 'M4A1',
+    colors: { pants:'#5c6b57', vest:'#2e3d52', vestHi:'#4a6280', hat:'#1c232d', accent:'#7fa8d9' }
+  },
+  BEAR: {
+    name: 'BEAR', tag: 'PMC \u2014 Russia-aligned', weaponKey: 'AKM',
+    colors: { pants:'#33362a', vest:'#3f4a2e', vestHi:'#586a3c', hat:'#262a1f', accent:'#c94b3c' }
+  }
+};
+
+// ============================== GAME STATE ==============================
+var G = {
+  state: 'menu',      // menu, faction, options, brief, playing, dead, mia, complete, stash
+  faction: 'USEC',
+  level: 0,
+  banked: 0,
+  totalKills: 0,
+  lock: 0,
+  time: 0,
+  cases: 0,                          // sealed cases waiting to be opened in the stash
+  unlockedWeapons: ['M4A1', 'AKM'],  // weapon keys available in inventory
+  equippedWeapon: null,              // chosen weapon key, defaults to faction weapon
+  armorTier: 0,                      // 0-3, reduces incoming damage
+  lastReward: null,                  // last case/task reward, shown in stash
+  maxLevelReached: 0,                // highest raid index unlocked for deployment
+  hubTab: 'inventory',               // 'inventory' or 'tasks', which stash panel is open
+  hubSelectedLevel: 0,               // raid currently picked for deployment
+  stats: { scavKills:0, pmcKills:0, bossKills:0, casesFound:0, extracts:0 },
+  taskClaimed: {}                    // { taskId: true } once a task's reward is collected
+};
+var optionsReturn = 'menu';
+
+var TASK_DEFS = [
+  { id:'t_scav10',   desc:'Eliminate 10 Scavs',        statKey:'scavKills',  target:10, reward:{ type:'rubles', amount:300 } },
+  { id:'t_pmc5',     desc:'Eliminate 5 rival PMCs',     statKey:'pmcKills',   target:5,  reward:{ type:'case',   amount:2 } },
+  { id:'t_boss1',    desc:'Kill a Boss Scav',           statKey:'bossKills',  target:1,  reward:{ type:'case',   amount:3 } },
+  { id:'t_cases5',   desc:'Secure 5 sealed cases',      statKey:'casesFound', target:5,  reward:{ type:'rubles', amount:400 } },
+  { id:'t_extract3', desc:'Extract from 3 raids',       statKey:'extracts',   target:3,  reward:{ type:'armor'  } }
+];
+
+function loadProgress(){
+  try {
+    var s = localStorage.getItem('exfil_progress');
+    if (s){
+      var o = JSON.parse(s);
+      if (typeof o.banked === 'number') G.banked = o.banked;
+      if (typeof o.cases === 'number') G.cases = o.cases;
+      if (Array.isArray(o.unlockedWeapons) && o.unlockedWeapons.length) G.unlockedWeapons = o.unlockedWeapons;
+      if (typeof o.armorTier === 'number') G.armorTier = o.armorTier;
+      if (typeof o.equippedWeapon === 'string') G.equippedWeapon = o.equippedWeapon;
+      if (typeof o.maxLevelReached === 'number') G.maxLevelReached = o.maxLevelReached;
+      if (typeof o.totalKills === 'number') G.totalKills = o.totalKills;
+      if (o.stats && typeof o.stats === 'object') for (var k in G.stats) if (typeof o.stats[k] === 'number') G.stats[k] = o.stats[k];
+      if (o.taskClaimed && typeof o.taskClaimed === 'object') G.taskClaimed = o.taskClaimed;
+    }
+  } catch(e){}
+}
+function saveProgress(){
+  try {
+    localStorage.setItem('exfil_progress', JSON.stringify({
+      banked: G.banked, cases: G.cases, unlockedWeapons: G.unlockedWeapons,
+      armorTier: G.armorTier, equippedWeapon: G.equippedWeapon, maxLevelReached: G.maxLevelReached,
+      totalKills: G.totalKills, stats: G.stats, taskClaimed: G.taskClaimed
+    }));
+  } catch(e){}
+}
+loadProgress();
+G.hubSelectedLevel = Math.min(G.maxLevelReached, LEVELS.length - 1);
+
+function openCase(){
+  if (G.cases <= 0) return null;
+  G.cases--;
+  var reward, roll = Math.random();
+  if (roll < 0.35){
+    var v = 150 + Math.floor(Math.random() * 250);
+    G.banked += v;
+    reward = { text: 'SALVAGE +' + v + '\u20BD', color:'#ffd76a' };
+  } else if (roll < 0.68){
+    var locked = Object.keys(WEAPONS).filter(function(k){ return G.unlockedWeapons.indexOf(k) === -1; });
+    if (locked.length){
+      var wk = locked[Math.floor(Math.random() * locked.length)];
+      G.unlockedWeapons.push(wk);
+      reward = { text: WEAPONS[wk].name + ' UNLOCKED', color:'#7fa8d9' };
+    } else {
+      var v2 = 200 + Math.floor(Math.random() * 200);
+      G.banked += v2;
+      reward = { text: 'SALVAGE +' + v2 + '\u20BD', color:'#ffd76a' };
+    }
+  } else {
+    if (G.armorTier < 3){
+      G.armorTier++;
+      reward = { text: 'ARMOR UPGRADED \u2014 TIER ' + G.armorTier, color:'#8fd68a' };
+    } else {
+      var v3 = 150 + Math.floor(Math.random() * 200);
+      G.banked += v3;
+      reward = { text: 'SALVAGE +' + v3 + '\u20BD', color:'#ffd76a' };
+    }
+  }
+  saveProgress();
+  return reward;
+}
+
+function claimTask(id){
+  var def = null;
+  for (var i = 0; i < TASK_DEFS.length; i++) if (TASK_DEFS[i].id === id) def = TASK_DEFS[i];
+  if (!def || G.taskClaimed[id]) return null;
+  if ((G.stats[def.statKey] || 0) < def.target) return null;
+  G.taskClaimed[id] = true;
+  var reward;
+  if (def.reward.type === 'rubles'){
+    G.banked += def.reward.amount;
+    reward = { text: '+' + def.reward.amount + '\u20BD', color:'#ffd76a' };
+  } else if (def.reward.type === 'case'){
+    G.cases += def.reward.amount;
+    reward = { text: '+' + def.reward.amount + ' CASES', color:'#ffd76a' };
+  } else if (def.reward.type === 'armor'){
+    if (G.armorTier < 3){
+      G.armorTier++;
+      reward = { text: 'ARMOR UPGRADED \u2014 TIER ' + G.armorTier, color:'#8fd68a' };
+    } else {
+      G.banked += 300;
+      reward = { text: '+300\u20BD (armor maxed)', color:'#ffd76a' };
+    }
+  }
+  saveProgress();
+  return reward;
+}
+
+function enterStash(){
+  G.hubTab = 'inventory';
+  G.hubSelectedLevel = Math.min(G.maxLevelReached, LEVELS.length - 1);
+  G.lastReward = null;
+  setState('stash');
+}
+
+var grid = [], mapW = 0, mapH = 0;
+var P = null;
+var enemies = [], bullets = [], pickups = [], parts = [], floaters = [];
+var exfils = [];
+var camX = 0, camY = 0, shake = 0;
+var raidTime = 0, raidRoubles = 0, raidKills = 0, raidCases = 0, extractT = 0, tickAt = 0;
+var frame = 0;
+
+function tileAt(cx, cy){
+  if (cx < 0 || cx >= mapW) return 'X';
+  if (cy < 0 || cy >= mapH) return ' ';
+  return grid[cy][cx];
+}
+function solid(t){ return t === 'X' || t === '#'; }
+function oneway(t){ return t === '-'; }
+
+function loadLevel(i){
+  var L = LEVELS[i];
+  mapH = L.map.length;
+  mapW = 0;
+  var r;
+  for (r = 0; r < mapH; r++) mapW = Math.max(mapW, L.map[r].length);
+  grid = [];
+  enemies = []; bullets = []; pickups = []; parts = []; floaters = []; exfils = [];
+  for (r = 0; r < mapH; r++){
+    var src = L.map[r], out = [];
+    for (var c = 0; c < mapW; c++){
+      var ch = c < src.length ? src[c] : ' ';
+      var px = c * T, py = r * T;
+      switch (ch){
+        case 'P':
+          P = mkPlayer(px + 6, py + T - 30); ch = ' '; break;
+        case 'S':
+          enemies.push(mkScav(px + 6, py + T - 30, 'scav')); ch = ' '; break;
+        case 'F':
+          enemies.push(mkScav(px + 6, py + T - 32, 'pmc')); ch = ' '; break;
+        case 'B':
+          enemies.push(mkScav(px + 1, py + T - 44, 'boss')); ch = ' '; break;
+        case 'C': pickups.push({ type:'C', x:px+4, y:py+8, w:24, h:24 }); ch = ' '; break;
+        case 'M': pickups.push({ type:'M', x:px+8, y:py+10, w:16, h:16 }); ch = ' '; break;
+        case 'A': pickups.push({ type:'A', x:px+8, y:py+10, w:16, h:16 }); ch = ' '; break;
+        case 'R': pickups.push({ type:'R', x:px+8, y:py+12, w:16, h:12 }); ch = ' '; break;
+        case 'E': exfils.push({ x:px, y:py - 2*T, w:T, h:3*T }); break;
+      }
+      out.push(ch);
+    }
+    grid.push(out);
+  }
+  raidTime = L.time * 60;
+  raidRoubles = 0; raidKills = 0; raidCases = 0; extractT = 0;
+  camX = 0; camY = 0; shake = 0;
+  paused = false;
+}
+
+function mkPlayer(x, y){
+  var fac = FACTIONS[G.faction];
+  var wkey = (G.equippedWeapon && G.unlockedWeapons.indexOf(G.equippedWeapon) !== -1) ? G.equippedWeapon : fac.weaponKey;
+  var wpn = WEAPONS[wkey];
+  return { x:x, y:y, w:20, h:30, vx:0, vy:0, hp:100, face:1,
+    onG:false, coyote:0, cd:0, mag:wpn.mag, res:wpn.res, reload:0, inv:0, anim:0, fireFx:0,
+    weapon:wpn, colors:fac.colors };
+}
+
+var ENEMY_KINDS = {
+  scav: { hp:3,  w:20, h:30, range:290, cdMin:75,  cdMax:125, spread:0.22, contactDmg:8,
+    colors:{ pants:'#4a4f57', vest:'#5b6470', vestHi:'#6d7684', hat:'#2e3138' } },
+  pmc:  { hp:7,  w:20, h:32, range:340, cdMin:50,  cdMax:90,  spread:0.13, contactDmg:12,
+    colors:{ pants:'#2b2f26', vest:'#39424a', vestHi:'#4d5966', hat:'#171a1d' } },
+  boss: { hp:26, w:30, h:44, range:400, cdMin:130, cdMax:130, spread:0.14, contactDmg:20,
+    colors:{ pants:'#37393f', vest:'#5a3030', vestHi:'#7a4040', hat:'#8c2f2f' } }
+};
+function mkScav(x, y, kind){
+  var k = ENEMY_KINDS[kind] || ENEMY_KINDS.scav;
+  return { x:x, y:y, w:k.w, h:k.h, vx:0, vy:0,
+    hp:k.hp, face:-1, onG:false, kind:kind, boss:(kind==='boss'), pmc:(kind==='pmc'), aggro:false,
+    cd: 60 + Math.random()*60, burst:0, flash:0, anim: Math.random()*100, dead:false };
+}
+
+// ============================== PHYSICS ==============================
+function moveBody(e, st){
+  // horizontal
+  e.x += e.vx * st;
+  var x0, x1, y0, y1, cy, cx;
+  y0 = Math.floor(e.y / T); y1 = Math.floor((e.y + e.h - 1) / T);
+  if (e.vx > 0){
+    x1 = Math.floor((e.x + e.w) / T);
+    for (cy = y0; cy <= y1; cy++){
+      if (solid(tileAt(x1, cy))){ e.x = x1 * T - e.w - 0.01; e.vx = 0; break; }
+    }
+  } else if (e.vx < 0){
+    x0 = Math.floor(e.x / T);
+    for (cy = y0; cy <= y1; cy++){
+      if (solid(tileAt(x0, cy))){ e.x = (x0 + 1) * T + 0.01; e.vx = 0; break; }
+    }
+  }
+  // vertical
+  var prevBot = e.y + e.h;
+  e.vy = Math.min(e.vy + 0.55 * st, 13);
+  e.y += e.vy * st;
+  e.onG = false;
+  x0 = Math.floor(e.x / T); x1 = Math.floor((e.x + e.w - 1) / T);
+  if (e.vy > 0){
+    y1 = Math.floor((e.y + e.h) / T);
+    for (cx = x0; cx <= x1; cx++){
+      var t = tileAt(cx, y1);
+      if (solid(t) || (oneway(t) && prevBot <= y1 * T + 6)){
+        e.y = y1 * T - e.h - 0.01; e.vy = 0; e.onG = true; break;
+      }
+    }
+  } else if (e.vy < 0){
+    y0 = Math.floor(e.y / T);
+    for (cx = x0; cx <= x1; cx++){
+      if (solid(tileAt(cx, y0))){ e.y = (y0 + 1) * T + 0.01; e.vy = 0; break; }
+    }
+  }
+}
+function overlap(a, b){
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+// ============================== PLAYER ==============================
+function hurtPlayer(dmg, kx){
+  if (P.inv > 0 || P.hp <= 0) return;
+  P.hp -= dmg * (1 - G.armorTier * 0.15);
+  P.inv = 50;
+  P.vx = kx; P.vy = -4;
+  shake = 8;
+  blood(P.x + P.w/2, P.y + P.h/2, 6);
+  SFX.hurt();
+  if (P.hp <= 0){ killPlayer(); }
+}
+function killPlayer(){
+  P.hp = 0;
+  blood(P.x + P.w/2, P.y + P.h/2, 22);
+  SFX.dead();
+  setState('dead');
+}
+function setState(s){
+  G.state = s;
+  G.lock = 26;
+  uiPress = false;
+  if (s === 'complete') SFX.win();
+}
+
+// ============================== MENU UI ==============================
+function ptIn(mx, my, r){ return mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h; }
+function rectPlay(){ return { x: VW/2 - 120, y: 300, w: 240, h: 54 }; }
+function rectOptions(){ return { x: VW/2 - 120, y: 368, w: 240, h: 44 }; }
+function rectBack(){ return { x: 20, y: 16, w: 96, h: 34 }; }
+function rectUSEC(){ return { x: VW/2 - 300, y: 150, w: 260, h: 300 }; }
+function rectBEAR(){ return { x: VW/2 + 40, y: 150, w: 260, h: 300 }; }
+function rectMuteToggle(){ return { x: VW/2 - 140, y: 220, w: 280, h: 50 }; }
+function rectVolDown(){ return { x: VW/2 - 140, y: 300, w: 60, h: 50 }; }
+function rectVolUp(){ return { x: VW/2 + 80, y: 300, w: 60, h: 50 }; }
+
+// --- Stash hub rects ---
+function rectTabInventory(){ return { x: VW/2 - 220, y: 118, w: 210, h: 36 }; }
+function rectTabTasks(){ return { x: VW/2 + 10, y: 118, w: 210, h: 36 }; }
+function rectHubOpenCase(){ return { x: VW/2 - 110, y: 168, w: 220, h: 38 }; }
+function rectHubWeapon(i, n){
+  var w = 168, gap = 12, totalW = n*w + (n-1)*gap, startX = VW/2 - totalW/2;
+  return { x: startX + i*(w+gap), y: 246, w:w, h:50 };
+}
+function rectHubTaskClaim(i){ return { x: 762, y: 176 + i*40, w: 108, h: 30 }; }
+function rectHubLevel(i, n){
+  var w = 145, gap = 10, totalW = n*w + (n-1)*gap, startX = VW/2 - totalW/2;
+  return { x: startX + i*(w+gap), y: 412, w:w, h:50 };
+}
+function rectHubDeploy(){ return { x: VW/2 - 120, y: 486, w: 240, h: 44 }; }
+
+function handleMenuClick(mx, my){
+  if (G.state === 'menu'){
+    if (ptIn(mx, my, rectPlay())){ SFX.click(); setState('faction'); }
+    else if (ptIn(mx, my, rectOptions())){ SFX.click(); optionsReturn = 'menu'; setState('options'); }
+  } else if (G.state === 'faction'){
+    if (ptIn(mx, my, rectBack())){ SFX.click(); setState('menu'); }
+    else if (ptIn(mx, my, rectUSEC())){ selectFaction('USEC'); }
+    else if (ptIn(mx, my, rectBEAR())){ selectFaction('BEAR'); }
+  } else if (G.state === 'options'){
+    if (ptIn(mx, my, rectBack())){ SFX.click(); setState(optionsReturn); }
+    else if (ptIn(mx, my, rectMuteToggle())){
+      SET.muted = !SET.muted; syncMuteBtn(); saveSettings();
+      if (!SET.muted) SFX.click();
+    } else if (ptIn(mx, my, rectVolDown())){
+      SET.vol = Math.max(0, +(SET.vol - 0.25).toFixed(2)); saveSettings(); SFX.click();
+    } else if (ptIn(mx, my, rectVolUp())){
+      SET.vol = Math.min(1, +(SET.vol + 0.25).toFixed(2)); saveSettings(); SFX.click();
+    }
+  } else if (G.state === 'stash'){
+    if (ptIn(mx, my, rectBack())){ SFX.click(); setState('menu'); return; }
+    if (ptIn(mx, my, rectTabInventory())){ SFX.click(); G.hubTab = 'inventory'; return; }
+    if (ptIn(mx, my, rectTabTasks())){ SFX.click(); G.hubTab = 'tasks'; return; }
+
+    if (G.hubTab === 'inventory'){
+      if (G.cases > 0 && ptIn(mx, my, rectHubOpenCase())){
+        G.lastReward = openCase(); SFX.pickup(); return;
+      }
+      var wkeys = G.unlockedWeapons;
+      for (var lwi = 0; lwi < wkeys.length; lwi++){
+        if (ptIn(mx, my, rectHubWeapon(lwi, wkeys.length))){
+          G.equippedWeapon = wkeys[lwi]; SFX.click(); saveProgress(); return;
+        }
+      }
+    } else if (G.hubTab === 'tasks'){
+      for (var ti = 0; ti < TASK_DEFS.length; ti++){
+        var td = TASK_DEFS[ti];
+        var done = (G.stats[td.statKey] || 0) >= td.target;
+        if (done && !G.taskClaimed[td.id] && ptIn(mx, my, rectHubTaskClaim(ti))){
+          G.lastReward = claimTask(td.id); SFX.pickup(); return;
+        }
+      }
+    }
+
+    for (var li = 0; li < LEVELS.length; li++){
+      if (li <= G.maxLevelReached && ptIn(mx, my, rectHubLevel(li, LEVELS.length))){
+        SFX.click(); G.hubSelectedLevel = li; return;
+      }
+    }
+    if (ptIn(mx, my, rectHubDeploy())){
+      SFX.click();
+      G.level = G.hubSelectedLevel;
+      try { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(function(){}); } catch(e){}
+      try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(function(){}); } catch(e){}
+      setState('brief');
+    }
+  }
+}
+function selectFaction(f){
+  SFX.click();
+  G.faction = f;
+  if (!G.equippedWeapon || G.unlockedWeapons.indexOf(G.equippedWeapon) === -1) G.equippedWeapon = FACTIONS[f].weaponKey;
+  enterStash();
+}
+
+function updPlayer(st){
+  if (P.cd > 0) P.cd -= st;
+  if (P.inv > 0) P.inv -= st;
+  if (P.fireFx > 0) P.fireFx -= st;
+  if (jumpBuf > 0) jumpBuf -= st;
+
+  var acc = P.onG ? 0.9 : 0.55, max = 3.3;
+  if (inp.l){ P.vx = Math.max(P.vx - acc * st, -max); P.face = -1; }
+  else if (inp.r){ P.vx = Math.min(P.vx + acc * st, max); P.face = 1; }
+  else { P.vx *= Math.pow(P.onG ? 0.72 : 0.92, st); if (Math.abs(P.vx) < 0.05) P.vx = 0; }
+
+  if (P.onG) P.coyote = 7; else if (P.coyote > 0) P.coyote -= st;
+  if (jumpBuf > 0 && P.coyote > 0){
+    P.vy = -11; P.coyote = 0; jumpBuf = 0;
+    dust(P.x + P.w/2, P.y + P.h, 4);
+  }
+  if (!inp.j && P.vy < -3.5) P.vy = -3.5;
+
+  moveBody(P, st);
+  if (Math.abs(P.vx) > 0.3 && P.onG) P.anim += st * Math.abs(P.vx) * 0.6;
+
+  // reload
+  if (P.reload > 0){
+    P.reload -= st;
+    if (P.reload <= 0){
+      var take = Math.min(P.weapon.mag, P.res);
+      P.mag = take; P.res -= take;
+      SFX.reload();
+    }
+  } else if (P.mag <= 0 && P.res > 0){
+    P.reload = P.weapon.reloadTime; SFX.reload();
+  }
+
+  // fire
+  if (inp.f && P.cd <= 0 && P.reload <= 0){
+    if (P.mag > 0){
+      P.mag--; P.cd = P.weapon.cd; P.fireFx = 4;
+      var my = P.y + 12;
+      var mx = P.face > 0 ? P.x + P.w + 4 : P.x - 4;
+      bullets.push({ x:mx, y:my, vx: P.weapon.bspeed * P.face, vy: (Math.random()-0.5)*0.4,
+        from:'p', life:70, dmg:P.weapon.dmg, muzzle:P.weapon.muzzle });
+      shake = Math.max(shake, 1.5);
+      P.vx -= 0.25 * P.face;
+      SFX.shoot();
+    } else if (P.res <= 0){
+      P.cd = 20; SFX.click();
+    }
+  }
+
+  // hazards
+  var x0 = Math.floor(P.x / T), x1 = Math.floor((P.x + P.w - 1) / T);
+  var y0 = Math.floor(P.y / T), y1 = Math.floor((P.y + P.h - 1) / T);
+  for (var cy = y0; cy <= y1; cy++) for (var cx = x0; cx <= x1; cx++){
+    if (tileAt(cx, cy) === '^'){ hurtPlayer(15, P.face * -3.5); }
+  }
+
+  // fell off map
+  if (P.y > mapH * T + 60) killPlayer();
+
+  // pickups
+  for (var i = pickups.length - 1; i >= 0; i--){
+    var pk = pickups[i];
+    pk.bob = Math.sin((frame + i * 20) * 0.08) * 3;
+    if (overlap(P, pk)){
+      pickups.splice(i, 1);
+      applyPickup(pk);
+    }
+  }
+
+  // exfil
+  var inZone = false;
+  for (var z = 0; z < exfils.length; z++) if (overlap(P, exfils[z])) inZone = true;
+  if (inZone){
+    extractT += st;
+    if (extractT - tickAt > 60){ tickAt = extractT; SFX.tick(); }
+    if (extractT >= 180){
+      G.banked += raidRoubles;
+      G.totalKills += raidKills;
+      G.cases += raidCases;
+      G.stats.extracts++;
+      G.maxLevelReached = Math.max(G.maxLevelReached, Math.min(LEVELS.length - 1, G.level + 1));
+      saveProgress();
+      setState('complete');
+    }
+  } else { extractT = 0; tickAt = 0; }
+}
+
+function applyPickup(pk){
+  var cxp = pk.x + pk.w/2, cyp = pk.y;
+  if (pk.type === 'R'){
+    var v = 40 + Math.floor(Math.random() * 60);
+    raidRoubles += v; addFloat(cxp, cyp, '+' + v + '\u20BD', '#ffd76a'); SFX.pickup();
+  } else if (pk.type === 'M'){
+    P.hp = Math.min(100, P.hp + 40); addFloat(cxp, cyp, '+HP', '#7dff8a'); SFX.pickup();
+  } else if (pk.type === 'A'){
+    P.res += 30; addFloat(cxp, cyp, '+30 AMMO', '#ffce6b'); SFX.ammo();
+  } else if (pk.type === 'C'){
+    raidCases++;
+    G.stats.casesFound++;
+    addFloat(cxp, cyp, 'CASE SECURED', '#ffd76a');
+    SFX.pickup();
+  }
+}
+
+// ============================== ENEMIES ==============================
+function updEnemies(st){
+  for (var i = 0; i < enemies.length; i++){
+    var e = enemies[i];
+    if (e.dead) continue;
+    if (e.flash > 0) e.flash -= st;
+    var kdef = ENEMY_KINDS[e.kind] || ENEMY_KINDS.scav;
+    var pcx = P.x + P.w/2, ecx = e.x + e.w/2;
+    var dx = pcx - ecx, dy = (P.y + P.h/2) - (e.y + e.h/2);
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    var range = kdef.range;
+
+    var wasAggro = e.aggro;
+    e.aggro = dist < range && Math.abs(dy) < 150 && P.hp > 0;
+    if (e.aggro && !wasAggro){
+      addFloat(ecx, e.y - 8, e.boss ? 'BOSS SCAV!' : (e.pmc ? 'PMC CONTACT!' : '!'),
+        e.boss ? '#ff5d5d' : (e.pmc ? '#ff9a5a' : '#ffd76a'));
+      if (e.boss) SFX.boss();
+    }
+
+    if (e.aggro){
+      e.face = dx > 0 ? 1 : -1;
+      if (e.boss){
+        // boss walks toward player slowly
+        var want = Math.abs(dx) > 120 ? 0.6 * e.face : 0;
+        if (want !== 0 && !groundAhead(e)) want = 0;
+        e.vx = want;
+        e.cd -= st;
+        if (e.cd <= 0){ e.burst = 3; e.cd = 130; }
+        if (e.burst > 0){
+          if (!e.bt || e.bt <= 0){
+            e.bt = 9; e.burst--;
+            fireEnemy(e, kdef.spread);
+          } else e.bt -= st;
+        }
+      } else {
+        // scav and PMC hold ground and fire when aggro'd; PMC reloads faster and aims tighter
+        e.vx = 0;
+        e.cd -= st;
+        if (e.cd <= 0){
+          e.cd = kdef.cdMin + Math.random() * (kdef.cdMax - kdef.cdMin);
+          fireEnemy(e, kdef.spread);
+        }
+      }
+    } else {
+      // patrol
+      if (e.vx === 0) e.vx = 0.7 * e.face;
+      if (!groundAhead(e) || wallAhead(e)){ e.face *= -1; e.vx = 0.7 * e.face; }
+      e.anim += st;
+      e.cd = Math.max(e.cd, 30);
+    }
+
+    moveBody(e, st);
+    if (e.aggro && Math.abs(e.vx) > 0.1) e.anim += st;
+
+    // contact damage
+    if (P.hp > 0 && overlap(e, P)) hurtPlayer(kdef.contactDmg, (P.x < e.x ? -4 : 4));
+    if (e.y > mapH * T + 60){ e.dead = true; }
+  }
+}
+function groundAhead(e){
+  var fx = e.face > 0 ? e.x + e.w + 2 : e.x - 2;
+  var t = tileAt(Math.floor(fx / T), Math.floor((e.y + e.h + 4) / T));
+  return solid(t) || oneway(t);
+}
+function wallAhead(e){
+  var fx = e.face > 0 ? e.x + e.w + 2 : e.x - 2;
+  return solid(tileAt(Math.floor(fx / T), Math.floor((e.y + e.h/2) / T)));
+}
+function fireEnemy(e, spread){
+  var mx = e.face > 0 ? e.x + e.w + 3 : e.x - 3;
+  var my = e.y + (e.boss ? 18 : 12);
+  var dx = (P.x + P.w/2) - mx, dy = (P.y + P.h/2) - my;
+  var len = Math.max(1, Math.sqrt(dx*dx + dy*dy));
+  var sp = e.boss ? 5.6 : 4.8;
+  var ang = Math.atan2(dy, dx) + (Math.random() - 0.5) * spread * 2;
+  bullets.push({ x:mx, y:my, vx: Math.cos(ang)*sp, vy: Math.sin(ang)*sp, from:'e', life:110 });
+  e.fireFx = 4;
+  SFX.eshoot();
+}
+function hurtEnemy(e, dmg, dir){
+  e.hp -= dmg;
+  e.flash = 5;
+  e.x += dir * 2;
+  blood(e.x + e.w/2, e.y + e.h/2, 4);
+  SFX.hit();
+  if (e.hp <= 0){
+    e.dead = true;
+    raidKills++;
+    if (e.boss) G.stats.bossKills++;
+    else if (e.pmc) G.stats.pmcKills++;
+    else G.stats.scavKills++;
+    blood(e.x + e.w/2, e.y + e.h/2, 14);
+    if (e.boss){
+      addFloat(e.x + e.w/2, e.y - 10, 'BOSS DOWN', '#ff5d5d');
+      for (var k = 0; k < 6; k++){
+        pickups.push({ type:'R', x: e.x - 20 + k * 12, y: e.y - 10 - Math.random()*20, w:16, h:12 });
+      }
+      pickups.push({ type:'C', x: e.x + 6, y: e.y - 26, w:24, h:24 });
+      raidRoubles += 500;
+      addFloat(e.x + e.w/2, e.y - 26, '+500\u20BD', '#ffd76a');
+      shake = 12;
+    } else if (e.pmc){
+      addFloat(e.x + e.w/2, e.y - 10, 'PMC DOWN', '#ff9a5a');
+      var rollp = Math.random();
+      if (rollp < 0.40) pickups.push({ type:'C', x:e.x+4, y:e.y+6, w:24, h:24 });
+      else if (rollp < 0.65) pickups.push({ type:'R', x:e.x+2, y:e.y+10, w:16, h:12 });
+      else if (rollp < 0.85) pickups.push({ type:'A', x:e.x+2, y:e.y+8, w:16, h:16 });
+      else pickups.push({ type:'M', x:e.x+2, y:e.y+8, w:16, h:16 });
+      raidRoubles += 70;
+      addFloat(e.x + e.w/2, e.y - 24, '+70\u20BD', '#ffd76a');
+    } else {
+      var roll = Math.random();
+      if (roll < 0.30) pickups.push({ type:'R', x:e.x+2, y:e.y+10, w:16, h:12 });
+      else if (roll < 0.48) pickups.push({ type:'A', x:e.x+2, y:e.y+8, w:16, h:16 });
+      else if (roll < 0.58) pickups.push({ type:'M', x:e.x+2, y:e.y+8, w:16, h:16 });
+    }
+  }
+}
+
+// ============================== BULLETS / PARTICLES ==============================
+function updBullets(st){
+  for (var i = bullets.length - 1; i >= 0; i--){
+    var b = bullets[i];
+    b.x += b.vx * st; b.y += b.vy * st; b.life -= st;
+    var t = tileAt(Math.floor(b.x / T), Math.floor(b.y / T));
+    var kill = b.life <= 0 || solid(t);
+    if (solid(t)) spark(b.x, b.y);
+    if (!kill){
+      if (b.from === 'p'){
+        for (var j = 0; j < enemies.length; j++){
+          var e = enemies[j];
+          if (!e.dead && b.x > e.x && b.x < e.x + e.w && b.y > e.y && b.y < e.y + e.h){
+            hurtEnemy(e, b.dmg || 1, b.vx > 0 ? 1 : -1); kill = true; break;
+          }
+        }
+      } else if (P.hp > 0 && P.inv <= 0 &&
+                 b.x > P.x && b.x < P.x + P.w && b.y > P.y && b.y < P.y + P.h){
+        hurtPlayer(12, b.vx > 0 ? 3 : -3); kill = true;
+      }
+    }
+    if (kill) bullets.splice(i, 1);
+  }
+}
+function blood(x, y, n){
+  for (var i = 0; i < n; i++)
+    parts.push({ x:x, y:y, vx:(Math.random()-0.5)*4, vy:-Math.random()*3.5,
+      life: 26 + Math.random()*20, c:'#8c1f1f', s:2, g:0.28 });
+}
+function spark(x, y){
+  for (var i = 0; i < 3; i++)
+    parts.push({ x:x, y:y, vx:(Math.random()-0.5)*3, vy:(Math.random()-0.5)*3,
+      life: 10 + Math.random()*8, c:'#ffd76a', s:2, g:0.05 });
+}
+function dust(x, y, n){
+  for (var i = 0; i < n; i++)
+    parts.push({ x:x, y:y, vx:(Math.random()-0.5)*1.6, vy:-Math.random()*1,
+      life: 16 + Math.random()*10, c:'rgba(200,190,170,0.5)', s:3, g:-0.01 });
+}
+function updParts(st){
+  for (var i = parts.length - 1; i >= 0; i--){
+    var p = parts[i];
+    p.x += p.vx * st; p.y += p.vy * st; p.vy += p.g * st; p.life -= st;
+    if (p.life <= 0) parts.splice(i, 1);
+  }
+  // exfil smoke
+  if (G.state === 'playing'){
+    for (var z = 0; z < exfils.length; z++){
+      var ez = exfils[z];
+      if (ez.x + ez.w > camX - 40 && ez.x < camX + VW + 40 && Math.random() < 0.5){
+        parts.push({ x: ez.x + Math.random()*ez.w, y: ez.y + ez.h - 4,
+          vx:(Math.random()-0.5)*0.4, vy: -0.6 - Math.random()*0.9,
+          life: 50 + Math.random()*40, c:'rgba(90,230,120,0.30)', s: 5 + Math.random()*5, g:-0.006 });
+      }
+    }
+  }
+  for (var f = floaters.length - 1; f >= 0; f--){
+    var fl = floaters[f];
+    fl.y -= 0.5 * st; fl.life -= st;
+    if (fl.life <= 0) floaters.splice(f, 1);
+  }
+}
+function addFloat(x, y, txt, c){
+  floaters.push({ x:x, y:y, t:txt, c:c, life: 70 });
+}
+
+// ============================== UPDATE ==============================
+function update(st){
+  frame += st;
+  G.time += st;
+  if (G.lock > 0){ G.lock -= st; uiPress = false; return; }
+
+  if (G.state === 'menu' || G.state === 'faction' || G.state === 'options' || G.state === 'stash'){
+    uiPress = false;
+    return;
+  }
+  if (G.state === 'brief'){
+    if (uiPress){ uiPress = false; loadLevel(G.level); setState('playing'); G.lock = 8; }
+    return;
+  }
+  if (G.state === 'dead' || G.state === 'mia'){
+    if (uiPress){ uiPress = false; enterStash(); }
+    return;
+  }
+  if (G.state === 'complete'){
+    if (uiPress){ uiPress = false; enterStash(); }
+    return;
+  }
+
+  // playing
+  if (paused){ uiPress = false; return; }
+  raidTime -= st;
+  if (raidTime <= 0){ setState('mia'); return; }
+
+  updPlayer(st);
+  if (G.state !== 'playing') { updParts(st); return; }
+  updEnemies(st);
+  updBullets(st);
+  updParts(st);
+
+  var tx = P.x + P.w/2 - VW * 0.42;
+  camX += (Math.max(0, Math.min(tx, mapW * T - VW)) - camX) * Math.min(1, 0.12 * st);
+  camY = Math.max(0, Math.min(P.y - VH * 0.55, mapH * T - VH));
+  if (shake > 0) shake -= st;
+  uiPress = false;
+}
+
+// ============================== RENDER ==============================
+function hsh(n){ var s = Math.sin(n * 127.13) * 43758.5453; return s - Math.floor(s); }
+
+function drawBG(th){
+  var g = ctx.createLinearGradient(0, 0, 0, VH);
+  g.addColorStop(0, th.skyTop); g.addColorStop(1, th.skyBot);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+  // far layer
+  drawSilhouette(th.far, 0.25, 90, th);
+  drawSilhouette(th.near, 0.5, 40, th);
+}
+function drawSilhouette(col, par, base, th){
+  ctx.fillStyle = col;
+  var off = camX * par, seg = 140;
+  var start = Math.floor(off / seg) - 1;
+  for (var i = start; i < start + Math.ceil(VW / seg) + 2; i++){
+    var x = i * seg - off;
+    var h = base + hsh(i * 3.7) * 150;
+    if (th.pine){
+      var bx = x + 20, by = VH - 90;
+      ctx.beginPath();
+      ctx.moveTo(bx, by - h);
+      ctx.lineTo(bx - 34 - hsh(i)*20, by);
+      ctx.lineTo(bx + 34 + hsh(i+9)*20, by);
+      ctx.closePath(); ctx.fill();
+    } else {
+      ctx.fillRect(x, VH - 90 - h, seg * (0.5 + hsh(i * 1.3) * 0.45), h + 40);
+      if (hsh(i * 7.1) > 0.6) ctx.fillRect(x + 30, VH - 130 - h, 8, 40); // chimney/antenna
+    }
+  }
+}
+
+function drawTiles(th){
+  var c0 = Math.max(0, Math.floor(camX / T)), c1 = Math.min(mapW - 1, Math.floor((camX + VW) / T));
+  var r0 = Math.max(0, Math.floor(camY / T)), r1 = Math.min(mapH - 1, Math.floor((camY + VH) / T));
+  for (var r = r0; r <= r1; r++){
+    for (var c = c0; c <= c1; c++){
+      var t = grid[r][c];
+      if (t === ' ') continue;
+      var x = c * T - camX, y = r * T - camY;
+      if (t === 'X'){
+        ctx.fillStyle = th.ground; ctx.fillRect(x, y, T, T);
+        if (!solid(tileAt(c, r - 1))){ ctx.fillStyle = th.groundTop; ctx.fillRect(x, y, T, 6); }
+        if (hsh(c * 13.1 + r * 7.7) > 0.75){ ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(x + 6, y + 14, 8, 5); }
+      } else if (t === '#'){
+        ctx.fillStyle = th.alt; ctx.fillRect(x, y, T, T);
+        ctx.fillStyle = th.altHi; ctx.fillRect(x + 2, y + 2, T - 4, 4);
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.strokeRect(x + 0.5, y + 0.5, T - 1, T - 1);
+        if (th.stripes){
+          ctx.fillStyle = '#c9a227';
+          ctx.fillRect(x + 3, y + T - 8, 8, 4); ctx.fillRect(x + 19, y + T - 8, 8, 4);
+        }
+      } else if (t === '-'){
+        ctx.fillStyle = th.plank; ctx.fillRect(x, y, T, 8);
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x, y + 6, T, 2);
+        ctx.fillRect(x + 4, y + 8, 3, 6); ctx.fillRect(x + T - 7, y + 8, 3, 6);
+      } else if (t === '^'){
+        ctx.strokeStyle = '#9aa0a6'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (var k = 0; k < 4; k++){
+          ctx.moveTo(x + k * 8, y + T);
+          ctx.lineTo(x + k * 8 + 4, y + T - 14);
+          ctx.lineTo(x + k * 8 + 8, y + T);
+        }
+        ctx.stroke();
+        ctx.fillStyle = '#c94b3c';
+        ctx.fillRect(x + 10, y + T - 12, 2, 2); ctx.fillRect(x + 22, y + T - 9, 2, 2);
+      } else if (t === 'E'){
+        ctx.fillStyle = 'rgba(90,230,120,0.14)';
+        ctx.fillRect(x, y - 2 * T, T, 3 * T);
+        ctx.fillStyle = 'rgba(120,255,150,0.5)';
+        ctx.fillRect(x, y + T - 5, T, 5);
+        if (tileAt(c - 1, r) !== 'E'){
+          ctx.fillStyle = '#3d4a3f'; ctx.fillRect(x + 2, y - 30, 4, 62);
+          ctx.fillStyle = '#7dff8a'; ctx.fillRect(x + 6, y - 30, 34, 14);
+          ctx.fillStyle = '#0d2412';
+          ctx.font = 'bold 10px "Courier New", monospace';
+          ctx.fillText('EXFIL', x + 8, y - 20);
+        }
+      }
+    }
+  }
+}
+
+function drawSoldier(e, opts){
+  var x = Math.round(e.x - camX), y = Math.round(e.y - camY);
+  var w = e.w, h = e.h, f = e.face;
+  var run = e.onG && Math.abs(e.vx) > 0.3;
+  var leg = Math.sin(e.anim * 0.6) * (run ? 4 : 0);
+  var flash = e.flash && e.flash > 0;
+  var inv = opts.inv && Math.floor(frame / 3) % 2 === 0;
+  if (inv) ctx.globalAlpha = 0.4;
+
+  // legs
+  ctx.fillStyle = flash ? '#fff' : opts.pants;
+  ctx.fillRect(x + w*0.18 + leg*0.5, y + h*0.62, w*0.26, h*0.38);
+  ctx.fillRect(x + w*0.56 - leg*0.5, y + h*0.62, w*0.26, h*0.38);
+  // torso / vest
+  ctx.fillStyle = flash ? '#fff' : opts.vest;
+  ctx.fillRect(x + w*0.08, y + h*0.30, w*0.84, h*0.36);
+  ctx.fillStyle = flash ? '#eee' : opts.vestHi;
+  ctx.fillRect(x + w*0.20, y + h*0.36, w*0.6, h*0.12);
+  // head
+  ctx.fillStyle = flash ? '#fff' : '#d8a878';
+  ctx.fillRect(x + w*0.24, y + h*0.10, w*0.52, h*0.20);
+  // helmet / beanie
+  ctx.fillStyle = flash ? '#fff' : opts.hat;
+  ctx.fillRect(x + w*0.16, y, w*0.68, h*0.14);
+  ctx.fillRect(x + w*0.16, y + h*0.10, w*0.16, h*0.10);
+  // eye
+  ctx.fillStyle = '#1c1c1c';
+  ctx.fillRect(x + (f > 0 ? w*0.62 : w*0.28), y + h*0.16, 3, 3);
+  // gun
+  var gy = y + (opts.big ? 16 : 11);
+  ctx.fillStyle = flash ? '#fff' : '#22242a';
+  if (f > 0){
+    ctx.fillRect(x + w*0.4, gy, w*0.9, 4);
+    ctx.fillRect(x + w*0.55, gy + 4, 4, 5);
+  } else {
+    ctx.fillRect(x - w*0.3, gy, w*0.9, 4);
+    ctx.fillRect(x + w*0.28, gy + 4, 4, 5);
+  }
+  // muzzle flash
+  if (e.fireFx && e.fireFx > 0){
+    ctx.fillStyle = opts.muzzle || '#ffe27a';
+    var mx = f > 0 ? x + w*1.3 : x - w*0.34;
+    ctx.beginPath();
+    ctx.moveTo(mx, gy + 2);
+    ctx.lineTo(mx + 10*f, gy - 3);
+    ctx.lineTo(mx + 10*f, gy + 7);
+    ctx.closePath(); ctx.fill();
+    e.fireFx -= 1;
+  }
+  if (opts.armband){
+    ctx.fillStyle = '#c94b3c';
+    ctx.fillRect(x + (f > 0 ? w*0.08 : w*0.76), y + h*0.34, w*0.16, h*0.10);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawPickup(pk){
+  var x = Math.round(pk.x - camX), y = Math.round(pk.y - camY + (pk.bob || 0));
+  if (pk.type === 'C'){
+    ctx.fillStyle = '#4c6136'; ctx.fillRect(x, y, 24, 24);
+    ctx.fillStyle = '#617b45'; ctx.fillRect(x, y, 24, 6);
+    ctx.strokeStyle = '#2c3a20'; ctx.strokeRect(x + 0.5, y + 0.5, 23, 23);
+    ctx.fillStyle = '#c9d3b0'; ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.fillText('?', x + 8, y + 17);
+  } else if (pk.type === 'M'){
+    ctx.fillStyle = '#e8e4da'; ctx.fillRect(x, y, 16, 16);
+    ctx.fillStyle = '#c94b3c'; ctx.fillRect(x + 6, y + 3, 4, 10); ctx.fillRect(x + 3, y + 6, 10, 4);
+  } else if (pk.type === 'A'){
+    ctx.fillStyle = '#5b6a2e'; ctx.fillRect(x, y, 16, 16);
+    ctx.fillStyle = '#ffce6b'; ctx.fillRect(x + 3, y + 5, 3, 7); ctx.fillRect(x + 7, y + 5, 3, 7); ctx.fillRect(x + 11, y + 5, 3, 7);
+  } else if (pk.type === 'R'){
+    ctx.fillStyle = '#ffd76a'; ctx.fillRect(x, y + 4, 16, 8);
+    ctx.fillStyle = '#b8912f'; ctx.fillRect(x + 2, y + 6, 12, 4);
+    ctx.fillStyle = '#6b511a'; ctx.font = 'bold 9px "Courier New", monospace';
+    ctx.fillText('\u20BD', x + 5, y + 11);
+  }
+}
+
+function drawHUD(){
+  // HP
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(12, 10, 168, 40);
+  ctx.fillStyle = '#2a2f35'; ctx.fillRect(20, 17, 140, 10);
+  ctx.fillStyle = P.hp > 35 ? '#6fce62' : '#d8543c';
+  ctx.fillRect(20, 17, 140 * Math.max(0, P.hp) / 100, 10);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.strokeRect(20.5, 17.5, 140, 10);
+  ctx.fillStyle = '#dfe5ea'; ctx.font = 'bold 11px "Courier New", monospace';
+  ctx.fillText('HP', 22, 42);
+  // ammo
+  if (P.reload > 0){
+    ctx.fillStyle = '#ffce6b';
+    ctx.fillText('RELOADING', 60, 42);
+    ctx.fillStyle = '#2a2f35'; ctx.fillRect(126, 34, 34, 8);
+    ctx.fillStyle = '#ffce6b'; ctx.fillRect(126, 34, 34 * (1 - P.reload / 80), 8);
+  } else {
+    ctx.fillStyle = P.mag === 0 ? '#d8543c' : '#dfe5ea';
+    ctx.fillText(P.weapon.name + ' ' + P.mag + '/' + P.res, 60, 42);
+  }
+  // timer
+  var sec = Math.max(0, Math.ceil(raidTime / 60));
+  var mm = Math.floor(sec / 60), ss = ('0' + (sec % 60)).slice(-2);
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(VW/2 - 46, 8, 92, 26);
+  ctx.fillStyle = sec <= 30 ? '#ff6a5a' : '#dfe5ea';
+  ctx.font = 'bold 17px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(mm + ':' + ss, VW/2, 27);
+  ctx.textAlign = 'left';
+  // roubles + kills
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(VW - 190, 10, 130, 40);
+  ctx.fillStyle = '#ffd76a'; ctx.font = 'bold 13px "Courier New", monospace';
+  ctx.fillText('\u20BD ' + raidRoubles, VW - 180, 27);
+  ctx.fillStyle = '#dfe5ea'; ctx.font = 'bold 11px "Courier New", monospace';
+  ctx.fillText('KILLS ' + raidKills, VW - 180, 43);
+  ctx.fillStyle = FACTIONS[G.faction].colors.accent; ctx.font = 'bold 11px "Courier New", monospace';
+  ctx.fillText(G.faction, VW - 66, 27);
+  // boss bar
+  for (var i = 0; i < enemies.length; i++){
+    var e = enemies[i];
+    if (e.boss && !e.dead && e.aggro){
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(VW/2 - 130, 44, 260, 22);
+      ctx.fillStyle = '#3a2a2a'; ctx.fillRect(VW/2 - 122, 50, 244, 10);
+      ctx.fillStyle = '#d8543c'; ctx.fillRect(VW/2 - 122, 50, 244 * e.hp / 26, 10);
+      ctx.fillStyle = '#ffb3a7'; ctx.font = 'bold 10px "Courier New", monospace';
+      ctx.textAlign = 'center'; ctx.fillText('BOSS SCAV', VW/2, 48); ctx.textAlign = 'left';
+    }
+  }
+  // extraction progress
+  if (extractT > 0){
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(VW/2 - 110, VH/2 - 70, 220, 44);
+    ctx.fillStyle = '#7dff8a'; ctx.font = 'bold 15px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('EXTRACTING ' + Math.ceil((180 - extractT) / 60), VW/2, VH/2 - 52);
+    ctx.fillStyle = '#1d3a24'; ctx.fillRect(VW/2 - 90, VH/2 - 42, 180, 8);
+    ctx.fillStyle = '#7dff8a'; ctx.fillRect(VW/2 - 90, VH/2 - 42, 180 * extractT / 180, 8);
+    ctx.textAlign = 'left';
+  }
+  if (paused){
+    dim(0.55);
+    big('PAUSED', VH/2 - 10, '#dfe5ea');
+    small('tap II to resume', VH/2 + 22, '#9aa4ad');
+  }
+}
+
+function drawButton(r, txt, col){
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  ctx.fillRect(r.x, r.y, r.w, r.h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+  ctx.fillStyle = col;
+  ctx.font = 'bold 18px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(txt, r.x + r.w/2, r.y + r.h/2 + 6);
+  ctx.textAlign = 'left';
+}
+function drawLevelCard(r, idx){
+  var locked = idx > G.maxLevelReached;
+  var selected = idx === G.hubSelectedLevel;
+  ctx.fillStyle = locked ? 'rgba(255,255,255,0.04)' : (selected ? 'rgba(125,255,138,0.18)' : 'rgba(255,255,255,0.07)');
+  ctx.fillRect(r.x, r.y, r.w, r.h);
+  ctx.strokeStyle = selected ? '#7dff8a' : 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = selected ? 2 : 1;
+  ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+  ctx.font = 'bold 11px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = locked ? '#5a6069' : '#dfe5ea';
+  ctx.fillText(locked ? 'LOCKED' : LEVELS[idx].name, r.x + r.w/2, r.y + r.h/2 + 4);
+  ctx.textAlign = 'left';
+}
+function drawFactionPanel(r, fac){
+  ctx.fillStyle = fac.colors.vest;
+  ctx.fillRect(r.x, r.y, r.w, r.h);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(r.x, r.y, r.w, r.h * 0.5);
+  ctx.strokeStyle = fac.colors.accent;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+
+  ctx.fillStyle = fac.colors.accent;
+  ctx.font = 'bold 26px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(fac.name, r.x + r.w/2, r.y + 38);
+
+  ctx.font = '11px "Courier New", monospace';
+  ctx.fillStyle = '#dfe5ea';
+  ctx.fillText(fac.tag, r.x + r.w/2, r.y + 58);
+
+  var facWeapon = WEAPONS[fac.weaponKey];
+  var savedCamX = camX, savedCamY = camY;
+  camX = 0; camY = 0;
+  drawSoldier(
+    { x: r.x + r.w/2 - 10, y: r.y + 96, w:20, h:30, face:1, onG:true, vx:0, anim: frame * 0.15, fireFx:0 },
+    { pants: fac.colors.pants, vest: fac.colors.vest, vestHi: fac.colors.vestHi, hat: fac.colors.hat, muzzle: facWeapon.muzzle }
+  );
+  camX = savedCamX; camY = savedCamY;
+
+  ctx.fillStyle = '#ffd76a'; ctx.font = 'bold 15px "Courier New", monospace';
+  ctx.fillText(facWeapon.name, r.x + r.w/2, r.y + r.h - 48);
+  ctx.fillStyle = '#9aa4ad'; ctx.font = '10px "Courier New", monospace';
+  ctx.fillText('DMG/HIT ' + facWeapon.dmg + '   MAG ' + facWeapon.mag, r.x + r.w/2, r.y + r.h - 32);
+  if (Math.floor(frame / 24) % 2 === 0){
+    ctx.fillStyle = '#7dff8a'; ctx.font = 'bold 13px "Courier New", monospace';
+    ctx.fillText('TAP TO SELECT', r.x + r.w/2, r.y + r.h - 12);
+  }
+  ctx.textAlign = 'left';
+}
+
+function dim(a){
+  ctx.fillStyle = 'rgba(6,8,10,' + a + ')';
+  ctx.fillRect(0, 0, VW, VH);
+}
+function big(t, y, c){
+  ctx.fillStyle = c; ctx.font = 'bold 42px "Courier New", monospace';
+  ctx.textAlign = 'center'; ctx.fillText(t, VW/2, y); ctx.textAlign = 'left';
+}
+function mid(t, y, c){
+  ctx.fillStyle = c; ctx.font = 'bold 20px "Courier New", monospace';
+  ctx.textAlign = 'center'; ctx.fillText(t, VW/2, y); ctx.textAlign = 'left';
+}
+function small(t, y, c){
+  ctx.fillStyle = c; ctx.font = 'bold 14px "Courier New", monospace';
+  ctx.textAlign = 'center'; ctx.fillText(t, VW/2, y); ctx.textAlign = 'left';
+}
+function blink(t, y, c){
+  if (Math.floor(frame / 24) % 2 === 0) small(t, y, c);
+}
+
+function render(){
+  var th = THEMES[LEVELS[Math.min(G.level, LEVELS.length - 1)].theme];
+
+  if (G.state === 'menu'){
+    drawBG(THEMES[0]);
+    dim(0.45);
+    ctx.fillStyle = '#7dff8a'; ctx.font = 'bold 60px "Courier New", monospace';
+    ctx.textAlign = 'center'; ctx.fillText('EXFIL RAIDERS', VW/2, 170); ctx.textAlign = 'left';
+    mid('// TARKOV-STYLE EXTRACTION RAIDS //', 204, '#9aa4ad');
+    small('A 2D extraction-raid platformer', 232, '#6f7a83');
+    drawButton(rectPlay(), 'DEPLOY', '#7dff8a');
+    drawButton(rectOptions(), 'OPTIONS', '#dfe5ea');
+    small('Move: buttons or A/D  \u00b7  Jump: \u25b2 / SPACE  \u00b7  Fire: \u2732 / J or X', 440, '#8b959e');
+    small('Loot \u20BD and sealed cases, watch for rival PMCs, reach the smoke before time runs out.', 464, '#8b959e');
+    small('Open cases in your stash for better armor and guns. Die and you lose the raid\u2019s loot.', 486, '#6f7a83');
+    if (G.banked > 0) small('STASH: \u20BD ' + G.banked, 512, '#ffd76a');
+    return;
+  }
+
+  if (G.state === 'faction'){
+    drawBG(THEMES[0]);
+    dim(0.5);
+    drawButton(rectBack(), '\u2190 BACK', '#dfe5ea');
+    big('CHOOSE YOUR SIDE', 90, '#e8eef2');
+    drawFactionPanel(rectUSEC(), FACTIONS.USEC);
+    drawFactionPanel(rectBEAR(), FACTIONS.BEAR);
+    small('Faction sets your rifle and gear \u2014 loadout locks in for the raid.', 476, '#8b959e');
+    return;
+  }
+
+  if (G.state === 'options'){
+    drawBG(THEMES[0]);
+    dim(0.55);
+    drawButton(rectBack(), '\u2190 BACK', '#dfe5ea');
+    big('OPTIONS', 130, '#e8eef2');
+    drawButton(rectMuteToggle(), SET.muted ? 'SOUND: OFF' : 'SOUND: ON', SET.muted ? '#ff6a5a' : '#7dff8a');
+    drawButton(rectVolDown(), '\u2212', '#dfe5ea');
+    drawButton(rectVolUp(), '+', '#dfe5ea');
+    mid('VOLUME ' + Math.round(SET.vol * 100) + '%', 333, '#ffd76a');
+    small('Mute is also available any time from the speaker icon, top-left.', 400, '#8b959e');
+    return;
+  }
+
+  if (G.state === 'stash'){
+    drawBG(THEMES[0]);
+    dim(0.55);
+    drawButton(rectBack(), '\u2190 MENU', '#dfe5ea');
+    big('STASH', 64, '#ffd76a');
+    mid('\u20BD ' + G.banked + '   \u00b7   CASES ' + G.cases, 96, '#dfe5ea');
+
+    drawButton(rectTabInventory(), 'INVENTORY', G.hubTab === 'inventory' ? '#7dff8a' : '#8b959e');
+    drawButton(rectTabTasks(), 'TASKS', G.hubTab === 'tasks' ? '#7dff8a' : '#8b959e');
+
+    if (G.hubTab === 'inventory'){
+      if (G.cases > 0){
+        drawButton(rectHubOpenCase(), 'OPEN CASE', '#7dff8a');
+      } else {
+        small('No cases. Loot crates and rival PMCs in raid to find more.', 192, '#6f7a83');
+      }
+      var wkeys2 = G.unlockedWeapons;
+      for (var wi = 0; wi < wkeys2.length; wi++){
+        var wr = rectHubWeapon(wi, wkeys2.length);
+        var wkey2 = wkeys2[wi];
+        var equipped = (G.equippedWeapon || FACTIONS[G.faction].weaponKey) === wkey2;
+        drawButton(wr, WEAPONS[wkey2].name, equipped ? '#7dff8a' : '#dfe5ea');
+        ctx.fillStyle = '#8b959e'; ctx.font = '10px "Courier New", monospace'; ctx.textAlign = 'center';
+        ctx.fillText('DMG ' + WEAPONS[wkey2].dmg + ' MAG ' + WEAPONS[wkey2].mag, wr.x + wr.w/2, wr.y + wr.h + 15);
+        ctx.textAlign = 'left';
+      }
+      mid('ARMOR TIER ' + G.armorTier + ' / 3', 330, '#8fd68a');
+      small('Higher tier armor reduces incoming damage. Find upgrades in sealed cases.', 352, '#8b959e');
+    } else {
+      ctx.font = 'bold 12px "Courier New", monospace';
+      for (var ti = 0; ti < TASK_DEFS.length; ti++){
+        var td = TASK_DEFS[ti];
+        var have = G.stats[td.statKey] || 0;
+        var done = have >= td.target;
+        var claimed = !!G.taskClaimed[td.id];
+        var ty = 190 + ti * 40;
+        ctx.fillStyle = claimed ? '#5a6069' : (done ? '#7dff8a' : '#dfe5ea');
+        ctx.textAlign = 'left';
+        ctx.fillText(td.desc + '  (' + Math.min(have, td.target) + '/' + td.target + ')', 130, ty);
+        if (claimed){
+          ctx.fillStyle = '#5a6069';
+          ctx.fillText('CLAIMED', rectHubTaskClaim(ti).x + 8, ty);
+        } else if (done){
+          drawButton(rectHubTaskClaim(ti), 'CLAIM', '#7dff8a');
+        } else {
+          ctx.fillStyle = '#5a6069';
+          ctx.fillText('LOCKED', rectHubTaskClaim(ti).x + 8, ty);
+        }
+      }
+    }
+
+    if (G.lastReward) mid(G.lastReward.text, 388, G.lastReward.color);
+
+    small('DEPLOY TO:', 404, '#9aa4ad');
+    for (var li = 0; li < LEVELS.length; li++){
+      drawLevelCard(rectHubLevel(li, LEVELS.length), li);
+    }
+    drawButton(rectHubDeploy(), 'DEPLOY \u2192 ' + LEVELS[G.hubSelectedLevel].name, '#7dff8a');
+    return;
+  }
+
+  if (G.state === 'brief'){
+    var L = LEVELS[G.level];
+    drawBG(THEMES[L.theme]);
+    dim(0.55);
+    mid('RAID ' + (G.level + 1) + ' / ' + LEVELS.length, 170, '#9aa4ad');
+    big(L.name, 230, '#e8eef2');
+    small(L.brief[0], 286, '#b9c2ca');
+    small(L.brief[1], 310, '#b9c2ca');
+    small('Raid timer: ' + Math.floor(L.time / 60) + ':' + ('0' + (L.time % 60)).slice(-2), 350, '#ffce6b');
+    blink('TAP TO DEPLOY', 410, '#7dff8a');
+    return;
+  }
+
+  // world
+  drawBG(th);
+  ctx.save();
+  var sx = 0, sy = 0;
+  if (shake > 0){ sx = (Math.random() - 0.5) * shake; sy = (Math.random() - 0.5) * shake; }
+  ctx.translate(Math.round(sx), Math.round(sy));
+
+  drawTiles(th);
+
+  // tutorial texts
+  var L2 = LEVELS[G.level];
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = 'bold 12px "Courier New", monospace';
+  for (var wt = 0; wt < L2.texts.length; wt++){
+    var tt = L2.texts[wt];
+    ctx.fillText(tt.t, tt.c * T - camX, tt.r * T - camY);
+  }
+
+  for (var i = 0; i < pickups.length; i++) drawPickup(pickups[i]);
+  for (var e = 0; e < enemies.length; e++){
+    var en = enemies[e];
+    if (en.dead) continue;
+    var kdef2 = ENEMY_KINDS[en.kind] || ENEMY_KINDS.scav;
+    var opts2 = { pants:kdef2.colors.pants, vest:kdef2.colors.vest, vestHi:kdef2.colors.vestHi, hat:kdef2.colors.hat };
+    if (en.boss){ opts2.big = true; opts2.armband = true; }
+    if (en.pmc){ opts2.armband = true; }
+    drawSoldier(en, opts2);
+  }
+  if (P && P.hp > 0){
+    drawSoldier(P, { pants:P.colors.pants, vest:P.colors.vest, vestHi:P.colors.vestHi, hat:P.colors.hat,
+      muzzle:P.weapon.muzzle, inv: P.inv > 0 });
+  }
+
+  // bullets
+  for (var b = 0; b < bullets.length; b++){
+    var bl = bullets[b];
+    ctx.strokeStyle = bl.from === 'p' ? (bl.muzzle || '#ffe27a') : '#ff9a5a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(bl.x - camX - bl.vx * 1.6, bl.y - camY - bl.vy * 1.6);
+    ctx.lineTo(bl.x - camX, bl.y - camY);
+    ctx.stroke();
+  }
+  // particles
+  for (var p = 0; p < parts.length; p++){
+    var pa = parts[p];
+    ctx.fillStyle = pa.c;
+    ctx.fillRect(pa.x - camX - pa.s/2, pa.y - camY - pa.s/2, pa.s, pa.s);
+  }
+  // floaters
+  ctx.font = 'bold 13px "Courier New", monospace';
+  for (var f = 0; f < floaters.length; f++){
+    var fl = floaters[f];
+    ctx.globalAlpha = Math.min(1, fl.life / 30);
+    ctx.fillStyle = fl.c;
+    ctx.textAlign = 'center';
+    ctx.fillText(fl.t, fl.x - camX, fl.y - camY);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+
+  drawHUD();
+
+  if (G.state === 'dead' || G.state === 'mia'){
+    dim(0.6);
+    big(G.state === 'mia' ? 'M.I.A.' : 'K.I.A.', 220, '#ff5d5d');
+    small(G.state === 'mia' ? 'The raid timer ran out.' : 'You died in raid.', 260, '#c3cbd2');
+    small('Lost: \u20BD ' + raidRoubles + '  \u00b7  ' + raidCases + ' cases  \u00b7  Kills: ' + raidKills, 292, '#9aa4ad');
+    blink('TAP TO RETURN TO STASH', 350, '#ffd76a');
+  } else if (G.state === 'complete'){
+    dim(0.6);
+    var isFinal = G.level === LEVELS.length - 1;
+    big(isFinal ? 'ALL RAIDS CLEARED' : 'EXTRACTED', 210, '#7dff8a');
+    small(LEVELS[G.level].name + ' survived', 252, '#c3cbd2');
+    small('Loot banked: \u20BD ' + raidRoubles + '   \u00b7   Cases: ' + raidCases + '   \u00b7   Kills: ' + raidKills, 284, '#ffd76a');
+    small('Stash total: \u20BD ' + G.banked, 308, '#9aa4ad');
+    blink('TAP TO RETURN TO STASH', 360, '#7dff8a');
+  }
+
+  // portrait hint
+  if (window.innerHeight > window.innerWidth){
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, VH - 34, VW, 34);
+    small('Rotate your phone to landscape for the best experience', VH - 12, '#ffd76a');
+  }
+}
+
+// ============================== LOOP ==============================
+var last = 0;
+function loop(t){
+  var dt = Math.min(50, t - last); last = t;
+  var st = dt / 16.666;
+  update(Math.min(st, 2.4));
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(function(t){ last = t; requestAnimationFrame(loop); });
+
+})();
+</script>
+</body>
+</html>
